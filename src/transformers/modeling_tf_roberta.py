@@ -79,7 +79,7 @@ class TFRobertaEmbeddings(TFBertEmbeddings):
 
     def _embedding(self, inputs, training=False):
         """Applies embedding based on inputs tensor."""
-        input_ids, position_ids, token_type_ids, inputs_embeds = inputs
+        input_ids, position_ids, token_type_ids, inputs_embeds, custom_embeds = inputs
 
         if position_ids is None:
             if input_ids is not None:
@@ -88,7 +88,7 @@ class TFRobertaEmbeddings(TFBertEmbeddings):
             else:
                 position_ids = self.create_position_ids_from_inputs_embeds(inputs_embeds)
 
-        return super()._embedding([input_ids, position_ids, token_type_ids, inputs_embeds], training=training)
+        return super()._embedding([input_ids, position_ids, token_type_ids, inputs_embeds, custom_embeds], training=training)
 
 
 @keras_serializable

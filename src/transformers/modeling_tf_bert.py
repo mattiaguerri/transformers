@@ -165,7 +165,7 @@ class TFBertEmbeddings(tf.keras.layers.Layer):
 
     def _embedding(self, inputs, training=False):
         """Applies embedding based on inputs tensor."""
-        input_ids, position_ids, token_type_ids, inputs_embeds = inputs
+        input_ids, position_ids, token_type_ids, inputs_embeds, custom_embeds = inputs
 
         if input_ids is not None:
             input_shape = shape_list(input_ids)
@@ -183,7 +183,15 @@ class TFBertEmbeddings(tf.keras.layers.Layer):
         position_embeddings = self.position_embeddings(position_ids)
         token_type_embeddings = self.token_type_embeddings(token_type_ids)
 
-        embeddings = inputs_embeds + position_embeddings + token_type_embeddings
+
+        if custom_embeds is None:
+            # print("HERE A")
+            embeddings = inputs_embeds + position_embeddings + token_type_embeddings
+        else:
+            # print("HERE B")
+            embeddings = inputs_embeds + custom_embeds + position_embeddings + token_type_embeddings
+
+
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings, training=training)
         return embeddings
@@ -526,6 +534,7 @@ class TFBertMainLayer(tf.keras.layers.Layer):
         position_ids=None,
         head_mask=None,
         inputs_embeds=None,
+        custom_embeds=None,
         output_attentions=None,
         output_hidden_states=None,
         training=False,
@@ -537,9 +546,10 @@ class TFBertMainLayer(tf.keras.layers.Layer):
             position_ids = inputs[3] if len(inputs) > 3 else position_ids
             head_mask = inputs[4] if len(inputs) > 4 else head_mask
             inputs_embeds = inputs[5] if len(inputs) > 5 else inputs_embeds
-            output_attentions = inputs[6] if len(inputs) > 6 else output_attentions
-            output_hidden_states = inputs[7] if len(inputs) > 7 else output_hidden_states
-            assert len(inputs) <= 8, "Too many inputs."
+            custom_embeds = inputs[6] if len(inputs) > 6 else custom_embeds
+            output_attentions = inputs[7] if len(inputs) > 7 else output_attentions
+            output_hidden_states = inputs[8] if len(inputs) > 8 else output_hidden_states
+            assert len(inputs) <= 9, "Too many inputs."
         elif isinstance(inputs, (dict, BatchEncoding)):
             input_ids = inputs.get("input_ids")
             attention_mask = inputs.get("attention_mask", attention_mask)
@@ -547,6 +557,7 @@ class TFBertMainLayer(tf.keras.layers.Layer):
             position_ids = inputs.get("position_ids", position_ids)
             head_mask = inputs.get("head_mask", head_mask)
             inputs_embeds = inputs.get("inputs_embeds", inputs_embeds)
+            custom_embeds = inputs.get("custom_embeds", custom_embeds)
             output_attentions = inputs.get("output_attentions", output_attentions)
             output_hidden_states = inputs.get("output_hidden_states", output_hidden_states)
             assert len(inputs) <= 8, "Too many inputs."
@@ -597,7 +608,7 @@ class TFBertMainLayer(tf.keras.layers.Layer):
             head_mask = [None] * self.num_hidden_layers
             # head_mask = tf.constant([0] * self.num_hidden_layers)
 
-        embedding_output = self.embeddings([input_ids, position_ids, token_type_ids, inputs_embeds], training=training)
+        embedding_output = self.embeddings([input_ids, position_ids, token_type_ids, inputs_embeds, custom_embeds], training=training)
         encoder_outputs = self.encoder(
             [embedding_output, extended_attention_mask, head_mask, output_attentions, output_hidden_states],
             training=training,
